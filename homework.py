@@ -13,6 +13,12 @@ import exceptions
 
 load_dotenv()
 
+logging.basicConfig(
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    level=logging.INFO,
+    handlers=[logging.FileHandler('main.log', encoding='UTF-8'),
+              logging.StreamHandler(sys.stdout)]
+)
 
 PRACTICUM_TOKEN = os.getenv('PRACTICUM_TOKEN')
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
@@ -21,7 +27,6 @@ TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 RETRY_PERIOD = 600
 ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
 HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
-
 
 HOMEWORK_VERDICTS = {
     'approved': 'Работа проверена: ревьюеру всё понравилось. Ура!',
@@ -32,24 +37,20 @@ HOMEWORK_VERDICTS = {
 
 def check_tokens():
     """Проверка наличия токенов."""
-    flag = True
     message = 'Отсутствует обязательная переменная окружения:'
     if PRACTICUM_TOKEN is None:
-        flag = False
         practicum_token_is_none = (f'{message}: PRACTICUM_TOKEN')
         logging.critical(practicum_token_is_none)
         raise exceptions.TokensIsNoneException(practicum_token_is_none)
     elif TELEGRAM_TOKEN is None:
-        flag = False
         telegram_token_is_none = (f'{message}: TELEGRAM_TOKEN')
         logging.critical(telegram_token_is_none)
         raise exceptions.TokensIsNoneException(telegram_token_is_none)
     elif TELEGRAM_CHAT_ID is None:
-        flag = False
         telegram_chat_id_is_none = (f'{message}: TELEGRAM_CHAT_ID')
         logging.critical(telegram_chat_id_is_none)
         raise exceptions.TokensIsNoneException(telegram_chat_id_is_none)
-    return flag
+    return True
 
 
 def send_message(bot, message):
@@ -99,17 +100,16 @@ def parse_status(homework):
         raise KeyError('Отсутствует ключ "homework_name"')
     homework_name = homework.get('homework_name')
     status = homework.get('status')
-    unexpected_status = 'Неожиданный статус домашней работы'
-    verdict = HOMEWORK_VERDICTS.get(status, unexpected_status)
-    if verdict == unexpected_status:
-        raise ValueError(unexpected_status)
+    verdict = HOMEWORK_VERDICTS.get(status)
+    if verdict is None:
+        raise ValueError('Неожиданный статус домашней работы')
     return f'Изменился статус проверки работы "{homework_name}". {verdict}'
 
 
 def main():
     """Основная логика работы бота."""
     if not check_tokens():
-        exit()
+        sys.exit()
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     timestamp = int(time.time())
     prev_message = ''
@@ -135,10 +135,4 @@ def main():
 
 
 if __name__ == '__main__':
-    logging.basicConfig(
-        format='%(asctime)s - %(levelname)s - %(message)s',
-        level=logging.INFO,
-        handlers=[logging.FileHandler('main.log', encoding='UTF-8'),
-                  logging.StreamHandler(sys.stdout)]
-    )
     main()
