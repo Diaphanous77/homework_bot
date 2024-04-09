@@ -38,18 +38,15 @@ HOMEWORK_VERDICTS = {
 def check_tokens():
     """Проверка наличия токенов."""
     message = 'Отсутствует обязательная переменная окружения:'
-    if PRACTICUM_TOKEN is None:
-        practicum_token_is_none = (f'{message}: PRACTICUM_TOKEN')
-        logging.critical(practicum_token_is_none)
-        raise exceptions.TokensIsNoneException(practicum_token_is_none)
-    elif TELEGRAM_TOKEN is None:
-        telegram_token_is_none = (f'{message}: TELEGRAM_TOKEN')
-        logging.critical(telegram_token_is_none)
-        raise exceptions.TokensIsNoneException(telegram_token_is_none)
-    elif TELEGRAM_CHAT_ID is None:
-        telegram_chat_id_is_none = (f'{message}: TELEGRAM_CHAT_ID')
-        logging.critical(telegram_chat_id_is_none)
-        raise exceptions.TokensIsNoneException(telegram_chat_id_is_none)
+    token_dict = {
+        'PRACTICUM_TOKEN': PRACTICUM_TOKEN,
+        'TELEGRAM_TOKEN': TELEGRAM_TOKEN,
+        'TELEGRAM_CHAT_ID': TELEGRAM_CHAT_ID
+    }
+    for name, value in token_dict.items():
+        if value is None:
+            logging.critical(f'{message} {name}')
+            raise exceptions.TokensIsNoneException(f'{message} {name}')
     return True
 
 
@@ -108,8 +105,7 @@ def parse_status(homework):
 
 def main():
     """Основная логика работы бота."""
-    if not check_tokens():
-        sys.exit()
+    check_tokens()
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     timestamp = int(time.time())
     prev_message = ''
